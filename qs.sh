@@ -1,5 +1,5 @@
-SLOW_QUERY='select(.msg == "Slow query")'
-SLOW_QUERY_LIMIT_10="limit(10; $SLOW_QUERY)"
+SLOW_CMD='select(.msg == "Slow query" and .c == "COMMAND" and .attr.command != "unrecognized")'
+SLOW_CMD_LIMIT_10="limit(10; $SLOW_CMD)"
 
 LOG_TO_QUERY='
 (
@@ -13,6 +13,10 @@ LOG_TO_QUERY='
        (.attr.command.updates | length) > 0 and 
        (.attr.command.updates[0] | type) == "object" then
     .attr.command.updates[0].q
+  elif (.attr.command.deletes | type) == "array" and
+       (.attr.command.deletes | length) > 0 and 
+       (.attr.command.deletes[0] | type) == "object" then
+    .attr.command.deletes[0].q
   else
     .attr.command.query
   end
@@ -142,4 +146,4 @@ REDUCE1='
 '
 
 
-cat $1 | jq -c "$SLOW_QUERY | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq -n "$REDUCE1"
+cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq -n "$REDUCE1"
