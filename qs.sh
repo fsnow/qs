@@ -115,7 +115,7 @@ LOG_TO_NS_ACTION_SHAPE_OBJECT+="}"
 NS_ACTION_SHAPE_OBJECT_TO_STR='"\(.ns)|\(.action)|\(.shape)"'
 
 
-REDUCE1='
+REDUCE='
   reduce inputs as $j
     ({};
      $j.ns as $ns
@@ -150,5 +150,25 @@ REDUCE1='
     )
 '
 
+FINAL_TRANSFORM='
+to_entries 
+| map( 
+    {
+      "key": .key, 
+      "value": {
+        "countWithQuery": .value.countWithQuery,
+        "countWithoutQuery": .value.countWithoutQuery,
+        "queryShapes": (
+            .value 
+            | to_entries 
+            | map(.value | objects)
+            | sort_by(-1 * .percentage)
+        )
+      }
+    } 
+  )
+| from_entries'
 
-cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq -c -n "$REDUCE1"
+
+
+cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq -n "$REDUCE | $FINAL_TRANSFORM"
