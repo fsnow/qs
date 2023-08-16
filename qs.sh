@@ -126,10 +126,15 @@ REDUCE1='
      | $curNsObj[$shapestr] as $curShapeObj
      | ($curNsObj["countWithQuery"] + (if $shapestr == "null" or $shapestr == "{}" then 0 else 1 end)) as $newCountWithQuery
      | ($curNsObj["countWithoutQuery"] + (if $shapestr == "null" or $shapestr == "{}" then 1 else 0 end)) as $newCountWithoutQuery
+     | $curShapeObj["actions"] as $curActionsObj
+     | {
+         ($action): ($curShapeObj["actions"][$action] + 1)
+       } as $setActionsFields
+     | ($curActionsObj + $setActionsFields) as $newActionsObj
      | { 
          "count": ($curShapeObj["count"] + 1),
          "percentage": (if $newCountWithQuery == 0 then 0 else (((($curShapeObj["count"] + 1) / $newCountWithQuery * 10000) | round) / 100) end),
-         ($action): ($curShapeObj[$action] + 1), 
+         "actions": $newActionsObj, 
          "shape": $shape 
        } 
        as $setShapeFields
@@ -146,4 +151,4 @@ REDUCE1='
 '
 
 
-cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq -n "$REDUCE1"
+cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq -c -n "$REDUCE1"
