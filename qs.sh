@@ -171,4 +171,4 @@ to_entries
 
 
 
-cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq -n "$REDUCE | $FINAL_TRANSFORM"
+cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq --sort-keys | jq -n "$REDUCE | $FINAL_TRANSFORM" | jq --sort-keys
