@@ -133,7 +133,6 @@ REDUCE='
      | ($curActionsObj + $setActionsFields) as $newActionsObj
      | { 
          "count": ($curShapeObj["count"] + 1),
-         "percentage": (if $newCountWithQuery == 0 then 0 else (((($curShapeObj["count"] + 1) / $newCountWithQuery * 10000) | round) / 100) end),
          "actions": $newActionsObj, 
          "shape": $shape 
        } 
@@ -150,7 +149,7 @@ REDUCE='
     )
 '
 
-FINAL_TRANSFORM='
+TRANSFORM_SHAPES_TO_ARRAY='
 to_entries 
 | map( 
     {
@@ -162,7 +161,6 @@ to_entries
             .value 
             | to_entries 
             | map(.value | objects)
-            | sort_by(-1 * .percentage)
         )
       }
     } 
@@ -171,4 +169,4 @@ to_entries
 
 
 
-cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq --sort-keys | jq -n "$REDUCE | $FINAL_TRANSFORM" | jq --sort-keys
+cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq --sort-keys | jq -n "$REDUCE | $TRANSFORM_SHAPES_TO_ARRAY" | jq --sort-keys
