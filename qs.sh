@@ -1,4 +1,4 @@
-SLOW_CMD='select(.msg == "Slow query" and .c == "COMMAND" and .attr.command != "unrecognized")'
+SLOW_CMD='select(.msg == "Slow query" and .c == "COMMAND" and .attr.command != "unrecognized" and (.attr.ninserted == 0 | not))'
 SLOW_CMD_LIMIT_10="limit(10; $SLOW_CMD)"
 
 LOG_TO_QUERY='
@@ -74,6 +74,7 @@ LOG_TO_NS='
 )
 '
 
+# note: findAndModify also has .attr.command.update, so findAndModify must be checked first
 LOG_TO_ACTION='
 (
   if .attr.type == "update" then  
@@ -82,10 +83,10 @@ LOG_TO_ACTION='
     "remove" 
   elif .attr.command.find then
     "find"
-  elif .attr.command.update then 
-    "update" 
   elif .attr.command.findAndModify then 
     "findAndModify" 
+  elif .attr.command.update then 
+    "update" 
   elif .attr.command.insert then 
     "insert" 
   elif .attr.command.delete then 
