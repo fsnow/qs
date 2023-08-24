@@ -97,6 +97,10 @@ LOG_TO_ACTION='
 )
 '
 
+LOG_TO_DURMS='.attr.durationMillis'
+
+
+
 LOG_TO_SHAPE="($LOG_TO_QUERY | $QUERY_TO_SHAPE)"
 
 
@@ -114,6 +118,27 @@ LOG_TO_NS_ACTION_SHAPE_OBJECT+="}"
 
 
 NS_ACTION_SHAPE_OBJECT_TO_STR='"\(.ns)|\(.action)|\(.shape)"'
+
+
+
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT='
+    {
+      "ns": '
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+=$LOG_TO_NS
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+=',
+      "action": '
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+=$LOG_TO_ACTION
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+=',
+      "shape": '
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+=$LOG_TO_SHAPE
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+=',
+      "durMS": '
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+=$LOG_TO_DURMS
+LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT+="}"   
+
+
+
+
 
 
 REDUCE='
@@ -150,6 +175,48 @@ REDUCE='
     )
 '
 
+REDUCE_WITH_DURMS='
+  reduce inputs as $j
+    ({};
+     $j.ns as $ns
+     | $j.action as $action
+     | $j.shape as $shape
+     | $j.durMS as $durMS
+     | .[$ns] as $curNsObj
+     | "\($shape)" as $shapestr
+     | $curNsObj[$shapestr] as $curShapeObj
+     | ($curNsObj["countWithQuery"] + (if $shapestr == "null" or $shapestr == "{}" then 0 else 1 end)) as $newCountWithQuery
+     | ($curNsObj["countWithoutQuery"] + (if $shapestr == "null" or $shapestr == "{}" then 1 else 0 end)) as $newCountWithoutQuery
+     | $curShapeObj["actions"] as $curActionsObj
+     | $curActionsObj[$action] as $curActionObj
+     | {
+         "count": ($curActionObj["count"] + 1),
+         "durMSes": (if $curActionObj and $curActionObj["durMSes"] then $curActionObj["durMSes"] + [$durMS] else [$durMS] end)
+       } as $setActionFields
+     | ($curActionObj + $setActionFields) as $newActionObj
+     | {
+         ($action): $newActionObj
+       } as $setActionsFields
+     | ($curActionsObj + $setActionsFields) as $newActionsObj
+     | { 
+         "count": ($curShapeObj["count"] + 1),
+         "actions": $newActionsObj, 
+         "shape": $shape 
+       } 
+       as $setShapeFields
+     | ($curShapeObj + $setShapeFields) as $newShapeObj
+     | { 
+         ($shapestr): $newShapeObj, 
+         "countWithQuery": $newCountWithQuery, 
+         "countWithoutQuery": $newCountWithoutQuery 
+       } 
+       as $setNsFields
+     | ($curNsObj + $setNsFields) as $newNsObj
+     | . + { ($ns): ($newNsObj) }
+    )
+'
+
+
 TRANSFORM_SHAPES_TO_ARRAY='
 to_entries 
 | map( 
@@ -168,6 +235,28 @@ to_entries
   )
 | from_entries'
 
+ADD_STATS='
+def ceil: if . | floor == . then . else . + 1.0 | floor end; 
+def perc($p; $arr): $arr | sort as $arr | ($arr | length) as $len | ($p / 100.0 * $len) | ceil as $rank | $arr[$rank - 1]; 
+walk(
+  if type == "object" and has("durMSes") then 
+    ( 
+      .p50 = perc(50; .durMSes) 
+      | .p95 = perc(95; .durMSes) 
+      | .max = (.durMSes | max) 
+      | del(.durMSes) 
+    ) 
+  else . 
+  end
+)
+'
 
 
-cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq --sort-keys | jq -n "$REDUCE | $TRANSFORM_SHAPES_TO_ARRAY" | jq --sort-keys
+#cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq --sort-keys | jq -n "$REDUCE | $TRANSFORM_SHAPES_TO_ARRAY" | jq --sort-keys
+
+cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT" | jq --sort-keys | jq -n "$REDUCE_WITH_DURMS | $TRANSFORM_SHAPES_TO_ARRAY" | jq --sort-keys | jq "$ADD_STATS"
+
+# cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | head -n 1000 | jq --sort-keys | jq -n "$REDUCE"
+
+
+#          
