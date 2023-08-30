@@ -251,12 +251,16 @@ walk(
 )
 '
 
+SORT_SHAPES_BY_COUNT_DESC='
+walk( 
+  if type == "array" and (. | first | type == "object") and (. | first | has("count")) then 
+    sort_by(.count * -1) 
+  else 
+    . 
+  end)
+'
 
-#cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | jq --sort-keys | jq -n "$REDUCE | $TRANSFORM_SHAPES_TO_ARRAY" | jq --sort-keys
 
-cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT" | jq --sort-keys | jq -n "$REDUCE_WITH_DURMS | $TRANSFORM_SHAPES_TO_ARRAY" | jq --sort-keys | jq "$ADD_STATS"
+cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT" | jq --sort-keys | jq -n "$REDUCE_WITH_DURMS | $TRANSFORM_SHAPES_TO_ARRAY | $ADD_STATS | $SORT_SHAPES_BY_COUNT_DESC" | jq --sort-keys
 
-# cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_OBJECT" | head -n 1000 | jq --sort-keys | jq -n "$REDUCE"
-
-
-#          
+        

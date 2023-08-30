@@ -193,8 +193,17 @@ const addStats string = `
 	)
 `
 
+const sortShapesByCountDesc string = `
+walk( 
+  if type == "array" and (. | first | type == "object") and (. | first | has("count")) then 
+    sort_by(.count * -1) 
+  else 
+    . 
+  end)
+`
+
 const simplifiedLogs string = slowQueryFilter + ` | ` + logToNsActionShapeDurMsObject
-const reduceAndStats string = reduceWithDurMs + ` | ` + transformShapesToArray + ` | ` + addStats
+const reduceAndStats string = reduceWithDurMs + ` | ` + transformShapesToArray + ` | ` + addStats + ` | ` + sortShapesByCountDesc
 
 // channelIter struct
 type channelIter struct {
