@@ -260,7 +260,8 @@ walk(
   end)
 '
 
-
-cat $1 | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT" | jq --sort-keys | jq -n "$REDUCE_WITH_DURMS | $TRANSFORM_SHAPES_TO_ARRAY | $ADD_STATS | $SORT_SHAPES_BY_COUNT_DESC" | jq --sort-keys
+while IFS= read -r line; do
+    echo "$line"
+done | jq -c "$SLOW_CMD | $LOG_TO_NS_ACTION_SHAPE_DURMS_OBJECT" | jq --sort-keys | jq -n "$REDUCE_WITH_DURMS | $TRANSFORM_SHAPES_TO_ARRAY | $ADD_STATS | $SORT_SHAPES_BY_COUNT_DESC" | jq --sort-keys
 
         
