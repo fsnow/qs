@@ -183,9 +183,9 @@ const addStats string = `
 	walk(
 	if type == "object" and has("durMSes") then 
 		( 
-		.p50 = perc(50; .durMSes) 
-		| .p95 = perc(95; .durMSes) 
-		| .max = (.durMSes | max) 
+		.durationMillis.p50 = perc(50; .durMSes) 
+		| .durationMillis.p95 = perc(95; .durMSes) 
+		| .durationMillis.max = (.durMSes | max) 
 		| del(.durMSes) 
 		) 
 	else . 
